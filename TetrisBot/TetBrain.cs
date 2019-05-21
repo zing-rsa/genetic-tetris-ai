@@ -1,13 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
-using System.Runtime.Serialization;
-using System.Runtime.Serialization.Formatters.Binary;
-using System.Text;
-using System.Threading.Tasks;
 using Tetris_Clone;
-using Newtonsoft.Json;
 
 //Need to build the fitness function and evolve 
 
@@ -133,8 +127,11 @@ namespace TetrisBot
 
                 saveState(StateSynced);
 
-                Move move = getHighestRatedMove(possibleMoves);
-                
+
+                //Move move = getHighestRatedMove(possibleMoves);
+                //The above could be replace with the following LINQ syntax:
+                Move move = possibleMoves.OrderByDescending(mv => mv.rating).First();
+
                 for (var rotations = 0; rotations < move.rotation; rotations++)
                 {
                     StateSynced.PlayerInput(PlayerInput.RotateClockwise);
@@ -178,10 +175,10 @@ namespace TetrisBot
         private Move getHighestRatedMove(List<Move> moves)
         {
 
-            int maxRating = -100000000;
-            int maxMove = -1;
+            int maxRating = int.MinValue; //this guarentees the a lower bound.
+            int maxMove; // no need for this, = -1;
             List<int> ties = new List<int>();
-
+            
             for (int i = 0; i < moves.Count; i++)
             {
                 if (moves[i].rating > maxRating)
@@ -190,6 +187,8 @@ namespace TetrisBot
                     maxMove = i;
 
                     ties = new List<int>() { i };//NB find out what this does
+                    //ever time a move with a higher rating shows up, you create a new list of
+                    // ints, with the first element having the value of i
                 }
                 else if (moves[i].rating == maxRating)
                 {
@@ -216,13 +215,17 @@ namespace TetrisBot
             List<Move> possibleMoves = new List<Move>();
 
             saveState(StateSynced);
-
+            
             for (int rotations = 0; rotations < 4; rotations++)
-            {
+            {//I get this first loop. 4 rotations, 4 possible ways you could rotate a piece.
                 List<int> originalPos = new List<int>();
 
                 for (int translations = -5; translations <= 5; translations++)
-                {
+                {//I don't get this loop. Why 10 translations? surely there are only 3 translations -
+                 //left, right and no move?  Also, why is this a nested loop? If we are looking at all possible
+                 //moves, their options are a rotation and a translation?
+
+                    //There's some interesting and cool code here. If you want help with it, let me know.
                     loadState(prevGameState);
 
                     //rotate the shape
