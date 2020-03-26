@@ -15,112 +15,147 @@ namespace Tetris_Forms_UI
 {
     public partial class Form1 : Form
     {
+        private Game game;
+        private PopulationManager popMan;
+        //private TetBrain brain;
+
+        public static int xOffset = 10;
+        public static int yOffset = 5;
+
+        private ShapeEnum[,] localDeadGrid;
+        private BufferedGraphics buffer;
+
         public Form1()
         {
             InitializeComponent();
         }
 
-        private Game game;
-        private TetBrain brain;
-        public static int xOffset = 10;
-        public static int yOffset = 5;
-        private BufferedGraphics buffer;
-        private int[] linesToClear;
-        private ShapeEnum[,] localDeadGrid;
-
-        public event EventHandler GameReady;
-
-        private void Form1_Load(object sender, EventArgs e)
+        private void Form_Load(object sender, EventArgs e)
         {
             BufferedGraphicsContext context = BufferedGraphicsManager.Current;
             context.MaximumBuffer = new Size(this.Width + 1, this.Height + 1);
             buffer = context.Allocate(this.CreateGraphics(), new Rectangle(0, 0, this.Width, this.Height));
 
-            StartNewGame();
-            
+            StartNewGame(initialising: true);
         }
         
-        public void restartGame()
+        private void StartNewGame(bool initialising)
         {
             game = new Game(800, 20, 10, 4, true);
 
-            game.PieceHitBottom += brain.hitBottom;
+            if (initialising)
+            {
+                InitalisePopulation();
+            }
+
+            game.readyForNextMove += popMan.nextMoveRequired;
+            //game.PieceHitBottom += doNothing;
+
             localDeadGrid = game.DeadGrid;
             game.GameOver += game_GameOver;
 
             game.LinesCleared += game_LinesCleared;
             game.LinesAboutToClear += game_LinesAboutToClear;
-            gameTimer.Interval = 1;
-            gameTimer.Start();
-            isGameOver = false;
-            DrawGame();
 
-            brain.SyncAllStates(game);
-
-            GameReady.Invoke(this, new EventArgs());
-
-            //will probably need to link the new game to stateSynced 
-            //brain.evaluateNextGenome();
-        }
-
-        /// <summary>
-        /// Called once at build time
-        /// </summary>
-        private void StartNewGame()
-        {
-            game = new Game(800, 20, 10, 4, true);
-
-            InitaliseAI();
-
-            GameReady += brain.StartAI;
-            game.PieceHitBottom += brain.hitBottom;
-            localDeadGrid = game.DeadGrid;
-            game.GameOver += game_GameOver;
-
-            game.LinesCleared += game_LinesCleared;
-            game.LinesAboutToClear += game_LinesAboutToClear;
             gameTimer.Interval = 10;
             gameTimer.Start();
-            isGameOver = false;
+            
             DrawGame();
 
-            GameReady.Invoke(this, new EventArgs());
+            if (!initialising) brain.SyncAllStates(game);
 
         }
 
-        private void InitaliseAI()
+        private void InitalisePopulation()
         {
-            brain = new TetBrain(game);
+            popMan = new PopulationManager();
+            popMan.readyForEvaluation();
         }
 
-        private void printAIInfo()
+
+
+        void doNothing(object sender, EventArgs e)
         {
-            Debug.Write(
-            $"RC: {brain.getRowsCleared()}, " +
-            $"CumHeight: {brain.getCumulativeHeight(game)}, " +
-            $"Highest: {brain.getWeightedHeight(game)}, " +
-            $"relHeight: {brain.getRealtiveHeight(game)}, " +
-            $"holes: {brain.getHoles(game)}, " +
-            $"rough: {brain.getRoughness(game)}"
-            );
 
-            Debug.WriteLine("");
-            
         }
+
+        #region Ticker(s)
+        private void timer_Tick(object sender, EventArgs e)
+        {
+            game.TriggerGameTick();
+            DrawGame();
+        }
+
+        #endregion
+
+        #region Input and Keydowns
+
+        private static PlayerInput MapKeypressToInput(KeyEventArgs input)
+        {
+            switch (input.KeyCode)
+            {
+                case Keys.Down:
+                    return PlayerInput.Down;
+                case Keys.Left:
+                    return PlayerInput.Left;
+                case Keys.Right:
+                    return PlayerInput.Right;
+                case Keys.Q:
+                    return PlayerInput.RotateClockwise;
+                case Keys.W:
+                    return PlayerInput.RotateAntiClockwise;
+                default:
+                    return PlayerInput.Unknown;
+            }
+        }
+
+        private void Form_KeyDown(object sender, KeyEventArgs e)
+        {
+            switch (e.KeyCode)
+            {
+                case Keys.N:
+                    if (game.isGameOver)
+                    {
+                        StartNewGame(false);
+                    }
+                    break;
+                case Keys.P:
+                    game.CurrentPiece = new Piece(PieceEnum.I, 5, 0);
+                    break;
+                case Keys.Up:
+                    game.CurrentPiece.PositionY -= 1;
+                    DrawGame();
+                    break;
+                default:
+                    game.PlayerInput(MapKeypressToInput(e));
+                    DrawGame();
+                    break;
+            }
+        }
+
+        #endregion
+
+        #region Event Listeners
 
         void game_LinesAboutToClear(object sender, ShapeEnum[,] e)
         {
             localDeadGrid = e;
         }
 
-
-        private bool isGameOver;
         void game_GameOver(object sender, EventArgs e)
         {
-            isGameOver = true;
-            restartGame();
+            StartNewGame(false);
         }
-        
+
+        void game_LinesCleared(object sender, int[] e)
+        {
+            clearLines(e);
+        }
+
+        #endregion
+
+        #region Graphics Config
+
         private Color GetColorByPieceType(PieceEnum pieceEnum)
         {
             switch (pieceEnum)
@@ -144,121 +179,6 @@ namespace Tetris_Forms_UI
             }
         }
 
-        private static PlayerInput MapKeypressToInput(KeyEventArgs input)
-        {
-            switch (input.KeyCode)
-            {
-                case Keys.Down:
-                    return PlayerInput.Down;
-                case Keys.Left:
-                    return PlayerInput.Left;
-                case Keys.Right:
-                    return PlayerInput.Right;
-                case Keys.Q:
-                    return PlayerInput.RotateClockwise;
-                case Keys.W:
-                    return PlayerInput.RotateAntiClockwise;
-                default:
-                    return PlayerInput.Unknown;
-            }
-        }
-
-        private void Form1_KeyPress(object sender, KeyPressEventArgs e)
-        {
-
-        }
-
-
-        private void timer_Tick(object sender, EventArgs e)
-        {
-            //prefrom action each second(game cycle)
-
-            game.TriggerGameTick();
-            //brain.hitBottom();
-            DrawGame();
-            
-            printAIInfo();
-        }
-
-        private void Form1_KeyDown(object sender, KeyEventArgs e)
-        {
-            switch (e.KeyCode)
-            {
-                case Keys.N:
-                    if (isGameOver)
-                    {
-                        restartGame();
-                    }
-                    break;
-                case Keys.P:
-                    game.CurrentPiece = new Piece(PieceEnum.I, 5, 0);
-                    break;
-                case Keys.Up:
-                    game.CurrentPiece.PositionY -= 1;
-                    DrawGame();
-                    break;
-                default:
-                    game.PlayerInput(MapKeypressToInput(e));
-                    DrawGame();
-                    break;
-            }
-        }
-
-        void game_LinesCleared(object sender, int[] e)
-        {
-            //gameTimer.Stop();
-            tickCount = 0;
-            linesToClear = e; 
-            timLinesClearing.Start();
-        }
-
-        int tickCount;
-
-        private void timLinesClearing_Tick(object sender, EventArgs e)
-        {
-            tickCount++;
-
-            Graphics g = buffer.Graphics;
-            g.Clear(Color.Black);
-            DrawPiece(game, g);
-            RefreshPlayArea(game, g);
-            
-            int multiplier = 20;
-            int brushSize = 20;
-
-            var clearBrush = new SolidBrush(Color.DarkSlateBlue);
-            var textBrush = new SolidBrush(Color.GhostWhite);
-            var pen = new Pen(clearBrush, brushSize);
-
-            string textToDraw = GetLineClearText(linesToClear.Count());
-
-            foreach (var item in linesToClear)
-            {
-                var rect = new Rectangle
-                {
-                    X = (xOffset * multiplier)-1,
-                    Y = (yOffset + item) * multiplier,
-                    Height = multiplier,
-                    Width = (tickCount * 100) / 10,
-                };
-                g.FillRectangle(clearBrush, rect);
-                
-                g.DrawString(textToDraw, new Font("Arial", 8), textBrush, (xOffset * multiplier), ((yOffset + item) * multiplier)+2);
-                //g.FillRectangle(brush, new Rectangle(xOffset * multiplier, (yOffset + item) * multiplier, (game.Width + xOffset) * multiplier, 10));
-            }
-
-
-            buffer.Render(Graphics.FromHwnd(this.Handle));
-            if (tickCount == 20)
-            {
-                timLinesClearing.Stop();
-                localDeadGrid = game.DeadGrid;
-                //gameTimer.Start();
-                //game.TriggerGameTick();
-                //DrawGame();
-            }
-        }
-
         private string GetLineClearText(int p)
         {
             switch (p)
@@ -275,7 +195,24 @@ namespace Tetris_Forms_UI
                     return string.Empty;
             }
         }
-        
+
+        #endregion
+
+        #region Drawing Graphics
+
+        private void clearLines(int[] linesToClear)
+        {
+            Graphics g = buffer.Graphics;
+            g.Clear(Color.Black);
+
+            DrawPiece(game, g);
+            RefreshPlayArea(game, g);
+
+            buffer.Render(Graphics.FromHwnd(this.Handle));
+
+            localDeadGrid = game.DeadGrid;
+        }
+
         private void DrawGame()
         {
             Graphics g = buffer.Graphics;
@@ -283,7 +220,7 @@ namespace Tetris_Forms_UI
             DrawPiece(game, g);
             RefreshPlayArea(game, g);
 
-            if (isGameOver)
+            if (game.isGameOver)
             {
                 gameTimer.Stop();
 
@@ -361,8 +298,10 @@ namespace Tetris_Forms_UI
             g.DrawString("Lines cleared: " + game.TotalLinesCleared.ToString(), new Font("Arial", 13), brush, 440, 60);
             g.DrawString("Q & W to rotate", new Font("Arial", 13), brush, 440, 80);
 
+
         }
 
+        #endregion
 
     }
 }

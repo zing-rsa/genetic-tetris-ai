@@ -44,6 +44,8 @@
   <ItemGroup>
     <Compile Include="Enumerations.cs" />
     <Compile Include="Game.cs" />
+    <Compile Include="GameEventArgs.cs" />
+    <Compile Include="GameState.cs" />
     <Compile Include="Piece.cs" />
     <Compile Include="PlayerInput.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

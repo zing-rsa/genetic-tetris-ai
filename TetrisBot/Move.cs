@@ -11,7 +11,7 @@ namespace TetrisBot
         public int rotation { get; set; }
         public int translation { get; set; }
         public int rating { get; set; }
-        public Algorithim algorithim { get; set; }
+        public Personality algorithim { get; set; }
         
 
     }

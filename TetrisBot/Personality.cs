@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace TetrisBot
 {
-    public class Algorithim
+    public class Personality
     {
         public int rowsCleared { get; set; }
         public int weightedHeight { get; set; }

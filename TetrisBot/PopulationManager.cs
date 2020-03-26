@@ -1,147 +1,146 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 using Tetris_Clone;
-
-//Need to build the fitness function and evolve 
+using TetrisBot;
 
 namespace TetrisBot
 {
-    public class TetBrain
+    public class PopulationManager
     {
         #region Properties
 
-        public bool inspectMoveSelection { get; set; }
-        public bool isGameover { get; set; }
-        
         public int populationSize { get; set; }
         public List<Genome> genomes { get; set; }
-        public int currentGenome { get; set; }
 
-        public Game gameState {get;set;} 
-        public Game prevGameState { get; set; }
-        public Game StateSynced { get; set; }
-        public int movesTaken { get; set; }
+        public int currentGenomeIndex = -1;
+        public Genome currentGenome { get; set; }
         public int moveLimit { get; set; }
-
-        public Personality moveAlgorithim { get; set; }
 
         #endregion
 
+        #region Constructors
 
-        public TetBrain(int popSize = 50)
+        public PopulationManager(int popSize = 50)
         {
             this.moveLimit = 500;
             this.genomes = new List<Genome>();
 
             this.populationSize = popSize;
 
-            //gameState.GameOver += game_GameOver;//This might need some work
-
             CreateIntialPopulation();
         }
 
-        public TetBrain(Game gameState, int  popSize = 50)
+        public PopulationManager(GameState gameState, int popSize = 50)
         {
-
             this.moveLimit = 500;
             this.genomes = new List<Genome>();
 
-            this.StateSynced = gameState;
+            //this.StateSynced = gameState;
 
-            loadState(StateSynced);
-             
+            //loadState(StateSynced);
+
             this.populationSize = popSize;
 
-            //gameState.GameOver += game_GameOver;//This might need some work
-
             CreateIntialPopulation();
+
         }
 
-        //private void game_GameOver(object sender, EventArgs e)
-        //{
-        //    this.isGameover = true;
-        //}
+        #endregion
 
+        #region Init
         private void CreateIntialPopulation()
         {
             Random rnd = new Random();
 
             for (int i = 0; i < populationSize; i++)
             {
-                //creating the first gen of genomes with completely random weights to indicate the 
-                //importance of each property in the decision making proccess
-                Genome newG = new Genome() {
+                // Creating the first gen of genomes with completely random weights.
+                // Weights influence the importance a genome places on each property in the decision making proccess
+                Genome newG = new Genome()
+                {
 
-                    id               = rnd.Next(0, 1000),
-                    rowsCleared      = rnd.Next(0, 1000) - 2,
-                    weightedHeight   = rnd.Next(0, 1000) - 2,
-                    cumulativeHeight = rnd.Next(0, 1000) - 2,
-                    relativeHeight   = rnd.Next(0, 1000) - 2,
-                    holes            = rnd.Next(0, 1000) * 2,
-                    roughness        = rnd.Next(0, 1000) - 2,
+                    //id = i,
+                    //rowsCleared = rnd.Next(0, 1000) - 2,
+                    //weightedHeight = rnd.Next(0, 1000) - 2,
+                    //cumulativeHeight = rnd.Next(0, 1000) - 2,
+                    //relativeHeight = rnd.Next(0, 1000) - 2,
+                    //holes = rnd.Next(0, 1000) * 2,
+                    //roughness = rnd.Next(0, 1000) - 2,
+
+                    id = i,
+                    rowsCleared = rnd.Next(0, 1000),
+                    weightedHeight = rnd.Next(0, 1000),
+                    cumulativeHeight = rnd.Next(0, 1000),
+                    relativeHeight = rnd.Next(0, 1000),
+                    holes = rnd.Next(0, 1000),
+                    roughness = rnd.Next(0, 1000)
 
                 };
 
                 genomes.Add(newG);
-                
+
             }
-            //
-            //put this in the void for handling the game started event.
         }
 
-        public void StartAI(object sender, EventArgs e)
+        public void readyForEvaluation()
         {
             evaluateNextGenome();
         }
 
+        #endregion
+
         public void evaluateNextGenome()
         {
-            currentGenome++;
+            currentGenomeIndex++;
 
-            if (currentGenome == populationSize)
+            if (currentGenomeIndex == populationSize)
             {
-                currentGenome = 0;
+                currentGenomeIndex = 0;
                 //evolve();
             }
+            currentGenome = genomes[currentGenomeIndex];
 
-            movesTaken = 0;
-            MakeNextMove();
+            currentGenome.movesTaken = 0;
+            //MakeNextMove();
         }
 
-
-        public void MakeNextMove()
+        public void nextMoveRequired(object sender, Game arg)
         {
-            movesTaken++;
+            MakeNextMove(arg);
+        }
 
-            if (movesTaken > moveLimit)
+        public void MakeNextMove(Game currentGameRef)
+        {
+            currentGenome.movesTaken++;
+
+            
+
+            if (currentGenome.movesTaken > moveLimit)
             {
-                
-                genomes[currentGenome].fitness = getRowsCleared();
+                currentGenome.fitness = currentGameRef.TotalLinesCleared;
                 evaluateNextGenome();
-
             }
             else
             {
-                var possibleMoves = getAllPossibleMoves();
+                var possibleMoves = getAllPossibleMoves(currentGameRef);
 
-                saveState(StateSynced);
+                //GameState orgState = new GameState(currentGameRef);
 
-
-                //Move move = getHighestRatedMove(possibleMoves);
-                //The above could be replace with the following LINQ syntax:
                 Move move = possibleMoves.OrderByDescending(mv => mv.rating).First();
 
                 for (var rotations = 0; rotations < move.rotation; rotations++)
                 {
-                    StateSynced.PlayerInput(PlayerInput.RotateClockwise);
-                    
+                    currentGameRef.PlayerInput(PlayerInput.RotateClockwise);
+
                 }
                 if (move.translation < 0)
                 {
                     for (var lefts = 0; lefts < Math.Abs(move.translation); lefts++)
                     {
-                        StateSynced.PlayerInput(PlayerInput.Left);
+                        currentGameRef.PlayerInput(PlayerInput.Left);
 
                     }
                 }
@@ -149,57 +148,17 @@ namespace TetrisBot
                 {
                     for (var rights = 0; rights < move.translation; rights++)
                     {
-                        StateSynced.PlayerInput(PlayerInput.Right);
+                        currentGameRef.PlayerInput(PlayerInput.Right);
                     }
                 }
 
-                if (inspectMoveSelection)
-                {
-                    moveAlgorithim = move.algorithim;
-                }
+                //if (inspectMoveSelection)
+                //{
+                //    moveAlgorithim = move.algorithim;
+                //}
 
                 //Would need to send details to the view with algorothim behavior
             }
-        }
-
-        public void hitBottom(object sender, EventArgs e)
-        {
-            //Need to add MakenextMove call here, but cant because the if 
-            //statement never returns true. The reason is that the StateSynced
-            //objects params are already reset by its own CheckForDeactivations() method by the time it gets here
-
-            MakeNextMove();
-            
-        }
-
-        private Move getHighestRatedMove(List<Move> moves)
-        {
-
-            int maxRating = int.MinValue; //this guarentees the a lower bound.
-            int maxMove; // no need for this, = -1;
-            List<int> ties = new List<int>();
-            
-            for (int i = 0; i < moves.Count; i++)
-            {
-                if (moves[i].rating > maxRating)
-                {
-                    maxRating = moves[i].rating;
-                    maxMove = i;
-
-                    ties = new List<int>() { i };//NB find out what this does
-                    //ever time a move with a higher rating shows up, you create a new list of
-                    // ints, with the first element having the value of i
-                }
-                else if (moves[i].rating == maxRating)
-                {
-                    ties.Add(i);
-                }
-            }
-
-            Move move = moves[ties[0]];
-            move.algorithim.tieCount = ties.Count;
-            return move;
-            
         }
 
         /// <summary>
@@ -208,25 +167,21 @@ namespace TetrisBot
         /// <returns>
         /// A list of Move objects which all have corresponding ratings
         /// </returns>
-        public List<Move> getAllPossibleMoves()
+        public List<Move> getAllPossibleMoves(Game currentGameRef)
         {
-            this.isGameover = false;
+            //this.isGameover = false;
 
             List<Move> possibleMoves = new List<Move>();
 
-            saveState(StateSynced);
-            
+            GameState orgState = new GameState(currentGameRef);
+
             for (int rotations = 0; rotations < 4; rotations++)
-            {//I get this first loop. 4 rotations, 4 possible ways you could rotate a piece.
+            {
                 List<int> originalPos = new List<int>();
 
                 for (int translations = -5; translations <= 5; translations++)
-                {//I don't get this loop. Why 10 translations? surely there are only 3 translations -
-                 //left, right and no move?  Also, why is this a nested loop? If we are looking at all possible
-                 //moves, their options are a rotation and a translation?
-
-                    //There's some interesting and cool code here. If you want help with it, let me know.
-                    loadState(prevGameState);
+                {
+                    loadState(orgState);
 
                     //rotate the shape
                     for (int i = 0; i < rotations; i++)
@@ -274,7 +229,7 @@ namespace TetrisBot
                         rating += alg.holes * genomes[currentGenome].holes;
                         rating += alg.roughness * genomes[currentGenome].roughness;
 
-                        if(this.isGameover == true)
+                        if (this.isGameover == true)
                         {
                             rating -= 500;
                         }
@@ -286,7 +241,7 @@ namespace TetrisBot
                             rating = rating,
                             algorithim = alg
                         });
-                        
+
                     }
                 }
             }
@@ -299,8 +254,8 @@ namespace TetrisBot
         public Result moveToBottom()
         {
             //problem is here
-            Result result = new Result { lose = false, moved = true, rowsCleared = 0};
-            
+            Result result = new Result { lose = false, moved = true, rowsCleared = 0 };
+
             while (!gameState.CheckForDeactivations())
             {
                 gameState.PlayerInput(PlayerInput.Down);
@@ -315,7 +270,7 @@ namespace TetrisBot
         /// <summary>
         /// Creates a deep copy of a Game object
         /// </summary>
-        public void loadState(Game game)
+        public Game loadState(GameState game)
         {
             gameState = game.Clone(game);
             gameState.isActive = false;
@@ -323,14 +278,8 @@ namespace TetrisBot
 
         public void saveState(Game game)
         {
-            prevGameState = game.Clone(game); 
+            prevGameState = game.Clone(game);
             prevGameState.isActive = false;
-        }
-
-        //get the rows that have been cleared so far in the game
-        public int getRowsCleared()
-        {
-            return this.StateSynced.TotalLinesCleared;
         }
 
         //Returns a list of all of the heights of each of the columns, which is inherently 
@@ -375,7 +324,7 @@ namespace TetrisBot
                 {
                     //If on the last line in the column, add a zero because we know that the column is empty
                     //continue to the next iteration
-                    if(y == 20)
+                    if (y == 20)
                     {
                         heights.Add(0);
                         continue;
@@ -389,7 +338,7 @@ namespace TetrisBot
                     }
                 }
             }
-            
+
             return heights;
         }
 
@@ -416,7 +365,7 @@ namespace TetrisBot
         public int getCumulativeHeight(Game State)
         {
             List<int> allHeights = getAllHeights(State);
-            
+
             return allHeights.Sum();
         }
 
@@ -438,13 +387,13 @@ namespace TetrisBot
                 for (int x = 0; x < 10; x++)
                 {
                     //Check if there is a block that has a filled block above it. 
-                    if (State.DeadGrid[x, y] == ShapeEnum.Empty && State.DeadGrid[x,y-1] == ShapeEnum.Filled)
+                    if (State.DeadGrid[x, y] == ShapeEnum.Empty && State.DeadGrid[x, y - 1] == ShapeEnum.Filled)
                     {
                         //if there is, add a hole
                         totalHoles++;
 
                         //Must check for other blocks underneath that block, which might also now be part of bigger holes
-                        for (int i = 1; i < 20-y; i++)
+                        for (int i = 1; i < 20 - y; i++)
                         {
                             //if there it finds a filled block, break from the loop as that will be the last piece in the hole
                             if (State.DeadGrid[x, y + i] == ShapeEnum.Filled)
@@ -463,7 +412,7 @@ namespace TetrisBot
             }
 
             return totalHoles;
-            
+
         }
 
         //The sum of all the absolute differences between columns
@@ -474,20 +423,15 @@ namespace TetrisBot
             int roughness = 0;
             List<int> heights = getAllHeights(State);
 
-            for(int i = 0; i < heights.Count-1; i++)
+            for (int i = 0; i < heights.Count - 1; i++)
             {
                 roughness += Math.Abs(heights[i] - heights[i + 1]);
             }
-            
+
             return roughness;
         }
 
-        public void SyncAllStates(Game game)
-        {
-            this.gameState = game.Clone(game);
-            this.prevGameState = game.Clone(game);
-            this.StateSynced = game;
-        }
+
 
     }
 }

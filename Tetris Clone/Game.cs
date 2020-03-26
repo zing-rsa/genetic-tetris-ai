@@ -15,17 +15,23 @@ namespace Tetris_Clone
         #region Properties
 
         public Piece piece;
-        public int gameTick;
         public ShapeEnum[,] deadGrid;
+
         public bool isTicking;
+        public int gameTick;
+        public bool firstTick;
+
         public bool isGameOver;
+        public bool softGameOver;
 
         public event EventHandler GameOver;
-        public event EventHandler PieceHitBottom;
+        public event EventHandler<Game> readyForNextMove;
         public event EventHandler NewGameStarted;
 
         public event EventHandler<ShapeEnum[,]> LinesAboutToClear;
         public event EventHandler<int[]> LinesCleared;
+
+        
         public int GameTick
         {
             get { return gameTick; }
@@ -58,7 +64,6 @@ namespace Tetris_Clone
             get { return nextPiece; }
             set { nextPiece = value; }
         }
-        
 
         private int totalLinesCleared;
         public int TotalLinesCleared
@@ -74,14 +79,41 @@ namespace Tetris_Clone
         public Game(int tickInterval, int height, int width, int startXPosition, bool isActive)
         {
             isGameOver = false;
+            softGameOver = false;
+           
+            totalLinesCleared = 0;
+
             isTicking = false;
             gameTick = tickInterval;
-            totalLinesCleared = 0;
+            firstTick = true;
 
             this.isActive = isActive;
             this.StartXPosition = startXPosition;
             this.StartYPosition = 0;
             this.CurrentPiece =  AddNewPiece();
+            this.NextPiece = AddNewPiece();
+            this.Height = height;
+            this.Width = width;
+
+            InitialiseDeadGrid();
+
+        }
+
+        public Game(GameState state)
+        {
+            isGameOver = false;
+            softGameOver = false;
+
+            totalLinesCleared = 0;
+
+            isTicking = false;
+            gameTick = tickInterval;
+            firstTick = true;
+
+            this.isActive = isActive;
+            this.StartXPosition = startXPosition;
+            this.StartYPosition = 0;
+            this.CurrentPiece = AddNewPiece();
             this.NextPiece = AddNewPiece();
             this.Height = height;
             this.Width = width;
@@ -137,6 +169,12 @@ namespace Tetris_Clone
 
         public void TriggerGameTick(bool goingDown = false)
         {
+            if (firstTick)
+            {
+                readyForNextMove.Invoke(this, this);
+                firstTick = false;
+            }
+
             if (isGameOver)
             {
                 return;
@@ -145,19 +183,8 @@ namespace Tetris_Clone
             isTicking = true;
             piece.PositionY += 1;
 
-            if (CheckForDeactivations())//Checks for pieces that have reached the "floor"
+            if (CheckForDeactivations())//Checks for pieces that have reached the bottom
             {
-                //atbottom event
-
-
-                //Need to add functionality that will check if a piece has hit the ground, 
-                //so that the Ai can be triggered to make its next move
-                //Events? The problem is that the event has not been initalised before 
-                //the first time it needs to be called
-
-                //Try passing the method to be called to the contructor or something like that
-
-                //PieceReachedBottom.Invoke(this, new EventArgs());
                 
                 piece.PositionY -= 1;
                 piece.Deactivate();
@@ -166,20 +193,21 @@ namespace Tetris_Clone
                 piece = nextPiece;
                 nextPiece = AddNewPiece();
 
-
                 //NewPeiceAdded
                 if (isActive)
                 {
-                    // Check that this game isntance is in fact the one that is 
-                    //the one being used to play the game, and not the one the AI is using
-                    //to test moves
-                    PieceHitBottom.Invoke(this, new EventArgs());
+                    readyForNextMove.Invoke(this, this);
                 }
 
-                if (CheckForDeactivations() && isActive)
+                if (CheckForDeactivations())
                 {
-                    isGameOver = true;
-                    GameOver.Invoke(this, new EventArgs());
+                    softGameOver = true;
+                    if (isActive)
+                    {
+                        isGameOver = true;
+                        GameOver.Invoke(this, new EventArgs());
+                    }
+                    
                 }
             }
             isTicking = false;
@@ -285,7 +313,6 @@ namespace Tetris_Clone
                 }
             }
         }
-
 
         public Game Clone(Game source, bool isActive = false)
         {
