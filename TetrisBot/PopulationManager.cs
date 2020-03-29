@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using Tetris_Clone;
@@ -13,10 +14,17 @@ namespace TetrisBot
         #region Properties
 
         public int populationSize { get; set; }
-        public List<Genome> genomes { get; set; }
+        public double mutationRate { get; set; }
+        List<int> biases = new List<int>() { -1, 1 };
 
+
+
+        public List<Genome> genomes { get; set; }
         public int currentGenomeIndex = -1;
         public Genome currentGenome { get; set; }
+
+        public int currentGeneration { get; set; }
+
         public int moveLimit { get; set; }
 
         #endregion
@@ -61,7 +69,6 @@ namespace TetrisBot
                 // Weights influence the importance a genome places on each property in the decision making proccess
                 Genome newG = new Genome()
                 {
-
                     //id = i,
                     //rowsCleared = rnd.Next(0, 1000) - 2,
                     //weightedHeight = rnd.Next(0, 1000) - 2,
@@ -71,17 +78,18 @@ namespace TetrisBot
                     //roughness = rnd.Next(0, 1000) - 2,
 
                     id = i,
-                    rowsCleared = rnd.Next(0, 1000),
-                    weightedHeight = rnd.Next(0, 1000),
-                    cumulativeHeight = rnd.Next(0, 1000),
-                    relativeHeight = rnd.Next(0, 1000),
-                    holes = rnd.Next(0, 1000),
-                    roughness = rnd.Next(0, 1000)
-
+                    personality = new Personality
+                    {
+                        rowsCleared = new Bias(rnd.Next(0, 1000), biases[rnd.Next(0, 2)]),
+                        weightedHeight = new Bias(rnd.Next(0, 1000), biases[rnd.Next(0, 2)]),
+                        cumulativeHeight = new Bias(rnd.Next(0, 1000), biases[rnd.Next(0, 2)]),
+                        relativeHeight = new Bias(rnd.Next(0, 1000), biases[rnd.Next(0, 2)]),
+                        holes = new Bias(rnd.Next(0, 1000), biases[rnd.Next(0, 2)]),
+                        roughness = new Bias(rnd.Next(0, 1000), biases[rnd.Next(0, 2)])
+                    }
                 };
 
                 genomes.Add(newG);
-
             }
         }
 
@@ -96,10 +104,10 @@ namespace TetrisBot
         {
             currentGenomeIndex++;
 
-            if (currentGenomeIndex == populationSize)
+            if (currentGenomeIndex == this.populationSize)
             {
                 currentGenomeIndex = 0;
-                //evolve();
+                evolve();
             }
             currentGenome = genomes[currentGenomeIndex];
 
@@ -107,50 +115,92 @@ namespace TetrisBot
             //MakeNextMove();
         }
 
-        public void nextMoveRequired(object sender, Game arg)
+        public void evolve()
         {
-            MakeNextMove(arg);
-        }
+            var evolutionChance = 0.5;
+            Random rand = new Random();
 
-        public void MakeNextMove(Game currentGameRef)
-        {
-            currentGenome.movesTaken++;
+            List<Genome> nextGeneration = new List<Genome>();
+
+            var topTen = genomes.OrderByDescending((g) => g.fitness).Skip(genomes.Count-10).Take(10).ToList();
 
             
 
-            if (currentGenome.movesTaken > moveLimit)
+            foreach (Genome g in topTen)
             {
-                currentGenome.fitness = currentGameRef.TotalLinesCleared;
-                evaluateNextGenome();
+                nextGeneration.Add(g);
+
+                for (int i = 0; i < 4; i++)
+                {
+                    Genome child = new Genome()
+                    {
+                        personality = new Personality()
+                        {
+                            rowsCleared = new Bias(rand.Next(1, Convert.ToInt32(1.0 / evolutionChance) + 1) == 1 ? g.personality.rowsCleared.weight * mutationRate : g.personality.rowsCleared.weight, g.personality.rowsCleared.bias),
+                            weightedHeight= new Bias(rand.Next(1, Convert.ToInt32(1.0 / evolutionChance) + 1) == 1 ? g.personality.weightedHeight.weight * mutationRate : g.personality.weightedHeight.weight, g.personality.weightedHeight.bias),
+                            cumulativeHeight= new Bias(rand.Next(1, Convert.ToInt32(1.0 / evolutionChance) + 1) == 1 ? g.personality.cumulativeHeight.weight * mutationRate : g.personality.cumulativeHeight.weight, g.personality.cumulativeHeight.bias),
+                            relativeHeight= new Bias(rand.Next(1, Convert.ToInt32(1.0 / evolutionChance) + 1) == 1 ? g.personality.relativeHeight.weight * mutationRate : g.personality.relativeHeight.weight, g.personality.relativeHeight.bias),
+                            holes= new Bias(rand.Next(1, Convert.ToInt32(1.0 / evolutionChance) + 1) == 1 ? g.personality.holes.weight * mutationRate : g.personality.holes.weight, g.personality.holes.bias),
+                            roughness= new Bias(rand.Next(1, Convert.ToInt32(1.0 / evolutionChance) + 1) == 1 ? g.personality.roughness.weight * mutationRate : g.personality.roughness.weight, g.personality.roughness.bias)
+                        }
+                    };
+                    nextGeneration.Add(child);
+                }
             }
-            else
-            {
-                var possibleMoves = getAllPossibleMoves(currentGameRef);
+
+            this.currentGeneration++;
+
+            this.genomes = nextGeneration;
+        }
+
+        public void assignFitness(int fitness)
+        {
+            this.currentGenome.fitness = fitness;
+        }
+
+        public Move getNextMove_Seed(Game ref_CurrentGame, Genome seedGenome)
+        {
+            currentGenome = seedGenome;
+            currentGenome.movesTaken++;
+
+            //if (currentGenome.movesTaken > moveLimit)
+            //{
+            //    currentGenome.fitness = ref_CurrentGame.TotalLinesCleared;
+            //    evaluateNextGenome();
+            //}
+            //else
+            //{
+            var possibleMoves = getAllPossibleMoves(ref_CurrentGame);
+
+            //GameState orgState = new GameState(currentGameRef);
+
+            return getHighestRatedMove(possibleMoves);
+
+            //if (inspectMoveSelection)
+            //{
+            //    moveAlgorithim = move.algorithim;
+            //}
+
+            //Would need to send details to the view with algorothim behavior
+            //}
+        }
+
+        public Move getNextMove(Game ref_CurrentGame)
+        {
+            currentGenome.movesTaken++;
+
+            //if (currentGenome.movesTaken > moveLimit)
+            //{
+            //    currentGenome.fitness = ref_CurrentGame.TotalLinesCleared;
+            //    evaluateNextGenome();
+            //}
+            //else
+            //{
+            var possibleMoves = getAllPossibleMoves(ref_CurrentGame);
 
                 //GameState orgState = new GameState(currentGameRef);
 
-                Move move = possibleMoves.OrderByDescending(mv => mv.rating).First();
-
-                for (var rotations = 0; rotations < move.rotation; rotations++)
-                {
-                    currentGameRef.PlayerInput(PlayerInput.RotateClockwise);
-
-                }
-                if (move.translation < 0)
-                {
-                    for (var lefts = 0; lefts < Math.Abs(move.translation); lefts++)
-                    {
-                        currentGameRef.PlayerInput(PlayerInput.Left);
-
-                    }
-                }
-                else if (move.translation > 0)
-                {
-                    for (var rights = 0; rights < move.translation; rights++)
-                    {
-                        currentGameRef.PlayerInput(PlayerInput.Right);
-                    }
-                }
+            return getHighestRatedMove(possibleMoves);
 
                 //if (inspectMoveSelection)
                 //{
@@ -158,7 +208,12 @@ namespace TetrisBot
                 //}
 
                 //Would need to send details to the view with algorothim behavior
-            }
+            //}
+        }
+
+        public Move getHighestRatedMove(List<Move> possibleMoves)
+        {
+            return possibleMoves.OrderByDescending(mv => mv.rating).First();
         }
 
         /// <summary>
@@ -173,20 +228,18 @@ namespace TetrisBot
 
             List<Move> possibleMoves = new List<Move>();
 
-            GameState orgState = new GameState(currentGameRef);
-
             for (int rotations = 0; rotations < 4; rotations++)
             {
                 List<int> originalPos = new List<int>();
 
                 for (int translations = -5; translations <= 5; translations++)
                 {
-                    loadState(orgState);
+                    Game clonedState = new Game(currentGameRef);
 
                     //rotate the shape
                     for (int i = 0; i < rotations; i++)
                     {
-                        gameState.CurrentPiece.RotateClockwise();
+                        clonedState.CurrentPiece.RotateClockwise();
                     }
 
                     //move the shape
@@ -194,7 +247,7 @@ namespace TetrisBot
                     {
                         for (int i = 0; i < Math.Abs(translations); i++)
                         {
-                            gameState.PlayerInput(PlayerInput.Left);
+                            clonedState.PlayerInput(PlayerInput.Left);
                         }
 
                     }
@@ -202,66 +255,75 @@ namespace TetrisBot
                     {
                         for (int i = 0; i < translations; i++)
                         {
-                            gameState.PlayerInput(PlayerInput.Right);
+                            clonedState.PlayerInput(PlayerInput.Right);
                         }
                     }
 
-                    if (!originalPos.Contains(gameState.CurrentPiece.PositionX))
+                    if (!originalPos.Contains(clonedState.CurrentPiece.PositionX))
                     {
-                        Result MoveDownResult = moveToBottom();
+                        Result MoveDownResult = moveToBottom(clonedState);
 
-                        Personality alg = new Personality
+                        //GameStats gs = new GameStats
+                        //{
+                        //    rowsCleared = MoveDownResult.rowsCleared * currentGenome.personality.rowsClearedWeight,
+                        //    weightedHeight = getWeightedHeight(clonedState) * currentGenome.personality.weightedHeight,
+                        //    cumulativeHeight = getCumulativeHeight(clonedState) * currentGenome.personality.cumulativeHeight,
+                        //    relativeHeight = getRealtiveHeight(clonedState) * currentGenome.personality.relativeHeight,
+                        //    holes = getHoles(clonedState) * currentGenome.personality.holesWeight,
+                        //    roughness = getRoughness(clonedState) * currentGenome.personality.roughnessWeight
+                        //};
+
+                        GameStats gs = new GameStats
                         {
-                            rowsCleared = MoveDownResult.rowsCleared * genomes[currentGenome].rowsCleared,
-                            weightedHeight = getWeightedHeight(gameState) * genomes[currentGenome].weightedHeight,
-                            cumulativeHeight = getCumulativeHeight(gameState) * genomes[currentGenome].cumulativeHeight,
-                            relativeHeight = getRealtiveHeight(gameState) * genomes[currentGenome].relativeHeight,
-                            holes = getHoles(gameState) * genomes[currentGenome].holes,
-                            roughness = getRoughness(gameState) * genomes[currentGenome].roughness
+                            rowsCleared = MoveDownResult.rowsCleared,
+                            weightedHeight = getWeightedHeight(clonedState),
+                            cumulativeHeight = getCumulativeHeight(clonedState),
+                            relativeHeight = getRealtiveHeight(clonedState),
+                            holes = getHoles(clonedState),
+                            roughness = getRoughness(clonedState) 
                         };
 
                         int rating = 0;
 
-                        rating += alg.rowsCleared * genomes[currentGenome].rowsCleared;
-                        rating += alg.weightedHeight * genomes[currentGenome].weightedHeight;
-                        rating += alg.cumulativeHeight * genomes[currentGenome].cumulativeHeight;
-                        rating += alg.relativeHeight * genomes[currentGenome].relativeHeight;
-                        rating += alg.holes * genomes[currentGenome].holes;
-                        rating += alg.roughness * genomes[currentGenome].roughness;
+                        rating += gs.rowsCleared * Convert.ToInt32(currentGenome.personality.rowsCleared.weight * currentGenome.personality.rowsCleared.bias);
+                        rating += gs.weightedHeight * Convert.ToInt32(currentGenome.personality.weightedHeight.weight * currentGenome.personality.weightedHeight.bias);
+                        rating += gs.cumulativeHeight * Convert.ToInt32(currentGenome.personality.cumulativeHeight.weight * currentGenome.personality.cumulativeHeight.bias);
+                        rating += gs.relativeHeight * Convert.ToInt32(currentGenome.personality.relativeHeight.weight * currentGenome.personality.relativeHeight.bias);
+                        rating += gs.holes * Convert.ToInt32(currentGenome.personality.holes.weight * currentGenome.personality.holes.bias);
+                        rating += gs.roughness * Convert.ToInt32(currentGenome.personality.roughness.weight * currentGenome.personality.roughness.bias);
 
-                        if (this.isGameover == true)
-                        {
-                            rating -= 500;
-                        }
+                        //if (MoveDownResult.lose)
+                        //{
+                        //    rating = 0;
+                        //}
 
                         possibleMoves.Add(new Move()
                         {
                             rotation = rotations,
                             translation = translations,
                             rating = rating,
-                            algorithim = alg
+                            gameStats = gs
                         });
-
                     }
                 }
             }
 
-            loadState(StateSynced);
+            //loadState(StateSynced);//////////////////////////////////////////////////////////
 
             return possibleMoves;
         }
 
-        public Result moveToBottom()
+        public Result moveToBottom(Game game)
         {
             //problem is here
-            Result result = new Result { lose = false, moved = true, rowsCleared = 0 };
+            Result result = new Result { lose = false, rowsCleared = 0 };
 
-            while (!gameState.CheckForDeactivations())
+            while (!game.CheckForDeactivations())
             {
-                gameState.PlayerInput(PlayerInput.Down);
+                game.PlayerInput(PlayerInput.Down);
             }
-
-            result.rowsCleared = getRowsCleared();
+            result.lose = !game.softGameOver;
+            result.rowsCleared = game.TotalLinesCleared;
 
             return result;
 
@@ -270,17 +332,24 @@ namespace TetrisBot
         /// <summary>
         /// Creates a deep copy of a Game object
         /// </summary>
-        public Game loadState(GameState game)
-        {
-            gameState = game.Clone(game);
-            gameState.isActive = false;
-        }
+        //public Game loadState(GameState game)
+        //{
+        //    gameState = game.Clone(game);
+        //    gameState.isActive = false;
+        //}
 
-        public void saveState(Game game)
-        {
-            prevGameState = game.Clone(game);
-            prevGameState.isActive = false;
-        }
+        //public void saveState(Game game)
+        //{
+        //    prevGameState = game.Clone(game);
+        //    prevGameState.isActive = false;
+        //}
+
+        //public Game cloneState(Game orgGame)
+        //{
+        //    Game newState = new Game();
+
+            
+        //}
 
         //Returns a list of all of the heights of each of the columns, which is inherently 
         //sorted because of the way the algorithim reads the heights
@@ -432,6 +501,25 @@ namespace TetrisBot
         }
 
 
+        public int getFilledRatio(Game State)
+        {
+            var countFilled = 0;
+            var countHoles = this.getHoles(State);
 
+            for (int y = 1; y < 20; y++)
+            {
+                for (int x = 0; x < 10; x++)
+                {
+                    if (State.DeadGrid[x, y] == ShapeEnum.Filled)
+                    {
+                        countFilled++;
+                    }
+                }
+            }
+
+            countHoles = countHoles == 0 ? 1 : countHoles;
+
+            return countFilled / countHoles;
+        }
     }
 }

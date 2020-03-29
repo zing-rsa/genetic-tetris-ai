@@ -10,6 +10,7 @@ using System.Windows.Forms;
 using TetrisBot;
 using Tetris_Clone;
 using System.Diagnostics;
+using System.Threading;
 
 namespace Tetris_Forms_UI
 {
@@ -48,7 +49,7 @@ namespace Tetris_Forms_UI
                 InitalisePopulation();
             }
 
-            game.readyForNextMove += popMan.nextMoveRequired;
+            game.readyForNextMove += this.nextMoveRequired;
             //game.PieceHitBottom += doNothing;
 
             localDeadGrid = game.DeadGrid;
@@ -61,18 +62,57 @@ namespace Tetris_Forms_UI
             gameTimer.Start();
             
             DrawGame();
+        }
 
-            if (!initialising) brain.SyncAllStates(game);
+        public void nextMoveRequired(object sender, Game game)
+        {
+            Move chosenMove = popMan.getNextMove(game);
+            //Move chosenMove = popMan.getNextMove_Seed(game,
+            //    new Genome()
+            //    {
+            //        id = 0,
+            //        movesTaken = 0,
+            //        personality = new Personality()
+            //        {
+            //            rowsCleared = new Bias(1000, 1),
+            //            weightedHeight = new Bias(200, -1),
+            //            cumulativeHeight = new Bias(200, -1),
+            //            relativeHeight = new Bias(10, 1),
+            //            holes = new Bias(800, -1),
+            //            roughness = new Bias(10, 1)
+            //        }
+            //    });
 
+            this.ExecuteMove(chosenMove);
+        }
+
+        public void ExecuteMove(Move move)
+        {
+            for (var rotations = 0; rotations < move.rotation; rotations++)
+            {
+                game.PlayerInput(PlayerInput.RotateClockwise);
+            }
+            if (move.translation < 0)
+            {
+                for (var lefts = 0; lefts < Math.Abs(move.translation); lefts++)
+                {
+                    game.PlayerInput(PlayerInput.Left);
+                }
+            }
+            else if (move.translation > 0)
+            {
+                for (var rights = 0; rights < move.translation; rights++)
+                {
+                    game.PlayerInput(PlayerInput.Right);
+                }
+            }
         }
 
         private void InitalisePopulation()
         {
-            popMan = new PopulationManager();
+            popMan = new PopulationManager(20);
             popMan.readyForEvaluation();
         }
-
-
 
         void doNothing(object sender, EventArgs e)
         {
@@ -144,6 +184,8 @@ namespace Tetris_Forms_UI
 
         void game_GameOver(object sender, EventArgs e)
         {
+            popMan.assignFitness(this.game.TotalLinesCleared);
+            popMan.evaluateNextGenome();
             StartNewGame(false);
         }
 

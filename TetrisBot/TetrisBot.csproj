@@ -44,8 +44,9 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="MoveCalculator.cs" />
+    <Compile Include="Bias.cs" />
     <Compile Include="Personality.cs" />
+    <Compile Include="GameStats.cs" />
     <Compile Include="Genome.cs" />
     <Compile Include="Move.cs" />
     <Compile Include="PopulationManager.cs" />
