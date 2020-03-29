@@ -12,6 +12,7 @@ namespace TetrisBot
         public int movesTaken { get; set; }
         public Personality personality { get; set; }
         public int fitness { get; set; }
+        public bool played { get; set; }
 
         //Personality
         //public int rowsCleared { get; set; }

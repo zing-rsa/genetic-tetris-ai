@@ -110,7 +110,7 @@ namespace Tetris_Forms_UI
 
         private void InitalisePopulation()
         {
-            popMan = new PopulationManager(20);
+            popMan = new PopulationManager(50);
             popMan.readyForEvaluation();
         }
 
@@ -186,6 +186,7 @@ namespace Tetris_Forms_UI
         {
             popMan.assignFitness(this.game.TotalLinesCleared);
             popMan.evaluateNextGenome();
+            //WriteInfo(popMan.currentGenome);
             StartNewGame(false);
         }
 
@@ -240,6 +241,101 @@ namespace Tetris_Forms_UI
 
         #endregion
 
+        #region Display genome info
+
+        public void WriteInfo(Graphics g)
+        {
+            var brush = new SolidBrush(Color.GhostWhite);
+
+
+
+
+            g.DrawString("Generation Stats:", new Font("Arial", 20), brush, 680, 30);
+
+            g.DrawString("Population Size: " + popMan.populationSize, new Font("Arial", 15), brush, 700, 75);
+            g.DrawString("Current Generation: " + (popMan.currentGeneration + 1 ), new Font("Arial", 15), brush, 700, 100);
+
+            Genome generationBestPerfomer = popMan.genomes.OrderByDescending(gnme => gnme.fitness).First();
+            Genome bestPerfomer = popMan.genomes[0];
+            var bestPerfomerGeneration = 0;
+            if (generationBestPerfomer.fitness > bestPerfomer.fitness)
+            {
+                bestPerfomer = generationBestPerfomer;
+                bestPerfomerGeneration = popMan.currentGeneration;
+            }
+
+            g.DrawString("- Best Performer Fitness: " + bestPerfomer.fitness, new Font("Arial", 12), brush, 710, 127);
+            if (popMan.genomes.Where((gnme) => gnme.played == true).ToList().Count > 0)
+            {
+                g.DrawString("- Avg Fitness: " + popMan.genomes.Where((gnme) => gnme.played == true).Select((gnme) => gnme.fitness).Average(), new Font("Arial", 12), brush, 950, 127);
+            }
+            
+
+            g.DrawString(" - RowsCleared :", new Font("Arial", 13), brush, 720, 150);
+            g.DrawString("Weight:  " + bestPerfomer.personality.rowsCleared.weight , new Font("Arial", 13), brush, 930, 150);
+            g.DrawString("Bias:  " + bestPerfomer.personality.rowsCleared.getBias(), new Font("Arial", 13), brush, 1110, 150);
+
+            g.DrawString(" - WeightedHeight :", new Font("Arial", 13), brush, 720, 170);
+            g.DrawString("Weight:  " + bestPerfomer.personality.weightedHeight.weight , new Font("Arial", 13), brush, 930, 170);
+            g.DrawString("Bias:  " + bestPerfomer.personality.weightedHeight.getBias(), new Font("Arial", 13), brush, 1110, 170);
+
+            g.DrawString(" - CumulativeHeight :", new Font("Arial", 13), brush, 720, 190);
+            g.DrawString("Weight:  " + bestPerfomer.personality.cumulativeHeight.weight , new Font("Arial", 13), brush, 930, 190);
+            g.DrawString("Bias:  " + bestPerfomer.personality.cumulativeHeight.getBias(), new Font("Arial", 13), brush, 1110, 190);
+
+            g.DrawString(" - RelativeHeight :", new Font("Arial", 13), brush, 720, 210);
+            g.DrawString("Weight:  " + bestPerfomer.personality.relativeHeight.weight , new Font("Arial", 13), brush, 930, 210);
+            g.DrawString("Bias:  " + bestPerfomer.personality.relativeHeight.getBias(), new Font("Arial", 13), brush, 1110, 210);
+
+            g.DrawString(" - Holes :", new Font("Arial", 13), brush, 720, 230);
+            g.DrawString("Weight:  " + bestPerfomer.personality.holes.weight , new Font("Arial", 13), brush, 930, 230);
+            g.DrawString("Bias:  " + bestPerfomer.personality.holes.getBias(), new Font("Arial", 13), brush, 1110, 230);
+
+            g.DrawString(" - Roughness :", new Font("Arial", 13), brush, 720, 250);
+            g.DrawString("Weight:  " + bestPerfomer.personality.roughness.weight , new Font("Arial", 13), brush, 930, 250);
+            g.DrawString("Bias:  " + bestPerfomer.personality.roughness.getBias(), new Font("Arial", 13), brush, 1110, 250);
+
+            g.DrawString("- Best Performer Gen: " + (bestPerfomerGeneration+1), new Font("Arial", 12), brush, 710, 275);
+
+
+
+
+            g.DrawString("Genome Stats:", new Font("Arial", 20), brush, 680, 300);
+
+            g.DrawString("Current Genome: " + (popMan.currentGenomeIndex + 1), new Font("Arial", 15), brush, 700, 350);
+            g.DrawString(" - Fitness: " + game.TotalLinesCleared, new Font("Arial", 15), brush, 720, 390);
+            g.DrawString(" - Moves taken: " + popMan.currentGenome.movesTaken, new Font("Arial", 15), brush, 720, 415);
+
+            g.DrawString(" - RowsCleared :" , new Font("Arial", 15), brush, 720, 450);
+            g.DrawString("Weight:  " + popMan.currentGenome.personality.rowsCleared.weight, new Font("Arial", 15), brush, 930, 450);
+            g.DrawString("Bias:  " + popMan.currentGenome.personality.rowsCleared.getBias(), new Font("Arial", 15), brush, 1110, 450);
+
+            g.DrawString(" - WeightedHeight :", new Font("Arial", 15), brush, 720, 475);
+            g.DrawString("Weight:  " + popMan.currentGenome.personality.weightedHeight.weight , new Font("Arial", 15), brush, 930, 475);
+            g.DrawString("Bias:  " + popMan.currentGenome.personality.weightedHeight.getBias(), new Font("Arial", 15), brush, 1110, 475);
+
+            g.DrawString(" - CumulativeHeight :", new Font("Arial", 15), brush, 720, 500);
+            g.DrawString("Weight:  " + popMan.currentGenome.personality.cumulativeHeight.weight , new Font("Arial", 15), brush, 930, 500);
+            g.DrawString("Bias:  " + popMan.currentGenome.personality.cumulativeHeight.getBias(), new Font("Arial", 15), brush, 1110, 500);
+
+            g.DrawString(" - RelativeHeight :", new Font("Arial", 15), brush, 720, 525);
+            g.DrawString("Weight:  " + popMan.currentGenome.personality.relativeHeight.weight , new Font("Arial", 15), brush, 930, 525);
+            g.DrawString("Bias:  " + popMan.currentGenome.personality.relativeHeight.getBias(), new Font("Arial", 15), brush, 1110, 525);
+
+            g.DrawString(" - Holes :", new Font("Arial", 15), brush, 720, 550);
+            g.DrawString("Weight:  " + popMan.currentGenome.personality.holes.weight , new Font("Arial", 15), brush, 930, 550);
+            g.DrawString("Bias:  " + popMan.currentGenome.personality.holes.getBias(), new Font("Arial", 15), brush, 1110, 550);
+
+            g.DrawString(" - Roughness :", new Font("Arial", 15), brush, 720, 575);
+            g.DrawString("Weight:  " + popMan.currentGenome.personality.roughness.weight , new Font("Arial", 15), brush, 930, 575);
+            g.DrawString("Bias:  " + popMan.currentGenome.personality.roughness.getBias(), new Font("Arial", 15), brush, 1110, 575);
+
+            
+        }
+
+
+        #endregion
+
         #region Drawing Graphics
 
         private void clearLines(int[] linesToClear)
@@ -259,8 +355,11 @@ namespace Tetris_Forms_UI
         {
             Graphics g = buffer.Graphics;
             g.Clear(Color.Black);
+
             DrawPiece(game, g);
             RefreshPlayArea(game, g);
+
+            WriteInfo(g);
 
             if (game.isGameOver)
             {

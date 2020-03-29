@@ -17,8 +17,6 @@ namespace TetrisBot
         public double mutationRate { get; set; }
         List<int> biases = new List<int>() { -1, 1 };
 
-
-
         public List<Genome> genomes { get; set; }
         public int currentGenomeIndex = -1;
         public Genome currentGenome { get; set; }
@@ -31,12 +29,13 @@ namespace TetrisBot
 
         #region Constructors
 
-        public PopulationManager(int popSize = 50)
+        public PopulationManager(int popSize = 50, double mutationRate = 1.2)
         {
             this.moveLimit = 500;
             this.genomes = new List<Genome>();
 
             this.populationSize = popSize;
+            this.mutationRate = mutationRate;
 
             CreateIntialPopulation();
         }
@@ -103,12 +102,15 @@ namespace TetrisBot
         public void evaluateNextGenome()
         {
             currentGenomeIndex++;
+            if(currentGenome != null)
+                currentGenome.played = true;
 
             if (currentGenomeIndex == this.populationSize)
             {
                 currentGenomeIndex = 0;
                 evolve();
             }
+            
             currentGenome = genomes[currentGenomeIndex];
 
             currentGenome.movesTaken = 0;
@@ -121,16 +123,22 @@ namespace TetrisBot
             Random rand = new Random();
 
             List<Genome> nextGeneration = new List<Genome>();
-
-            var topTen = genomes.OrderByDescending((g) => g.fitness).Skip(genomes.Count-10).Take(10).ToList();
-
             
+            //seed genomes
+            //this.genomes = new List<Genome>();
+
+            //for (int i = 0; i < 20; i++)
+            //{
+            //    genomes.Add(new Genome() { fitness = i });
+            //}
+
+            var topTen = genomes.OrderBy((g) => g.fitness).Skip(genomes.Count-10).Take(10).ToList();
 
             foreach (Genome g in topTen)
             {
                 nextGeneration.Add(g);
 
-                for (int i = 0; i < 4; i++)
+                for (int i = 0; i < (genomes.Count/10)-1; i++)
                 {
                     Genome child = new Genome()
                     {
