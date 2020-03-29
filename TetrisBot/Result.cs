@@ -10,7 +10,6 @@ namespace TetrisBot
     {
         public bool lose { get; set; }
         public int rowsCleared { get; set; }
-        public bool moved { get; set; }
 
     }
 }

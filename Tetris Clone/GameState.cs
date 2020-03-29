@@ -8,13 +8,15 @@ namespace Tetris_Clone
 {
     public struct GameState
     {
+
+        //public Piece NextPiece { get; set; }
+        //public ShapeEnum[,] deadGrid { get; set; }
+        //public bool isTicking { get; set; }
+        //public int gameTick { get; set; }
+
         public Piece piece { get; set; }
-        public Piece NextPiece { get; set; }
 
-        public int gameTick { get; set; }
-        public ShapeEnum[,] deadGrid { get; set; }
-        public bool isTicking { get; set; }
-
+        public ShapeEnum[,] deadGrid;
         public bool isGameOver { get; set; }
         public bool softGameOver { get; set; }
         public bool isActive { get; set; }
@@ -23,11 +25,12 @@ namespace Tetris_Clone
 
         public GameState(Game state)
         {
+            //this.NextPiece = state.NextPiece;
+            //this.gameTick = state.gameTick;
+            //this.isTicking = state.isTicking;
+
             this.piece = state.piece;
-            this.NextPiece = state.NextPiece;
-            this.gameTick = state.gameTick;
             this.deadGrid = state.deadGrid;
-            this.isTicking = state.isTicking;
             this.isGameOver = state.isGameOver;
             this.softGameOver = state.softGameOver;
             this.isActive = state.isActive;

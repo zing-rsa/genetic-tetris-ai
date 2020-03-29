@@ -8,13 +8,13 @@ namespace TetrisBot
 {
     public class Personality
     {
-        public int rowsCleared { get; set; }
-        public int weightedHeight { get; set; }
-        public int cumulativeHeight { get; set; }
-        public int relativeHeight { get; set; }
-        public int holes { get; set; }
-        public int roughness { get; set; }
-        public int tieCount { get; set; }
+        public Bias rowsCleared { get; set; }
+        public Bias weightedHeight { get; set; }
+        public Bias cumulativeHeight { get; set; }
+        public Bias relativeHeight { get; set; }
+        public Bias holes { get; set; }
+        public Bias roughness { get; set; }
+        public Bias filledRatio { get; set; }
 
     }
 }

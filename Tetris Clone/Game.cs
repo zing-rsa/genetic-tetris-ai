@@ -99,26 +99,38 @@ namespace Tetris_Clone
 
         }
 
-        public Game(GameState state)
+        public Game(Game gameToCopy)
         {
-            isGameOver = false;
-            softGameOver = false;
+            // Used for Cloning State
+            isGameOver = gameToCopy.isGameOver;
+            softGameOver = gameToCopy.softGameOver;
 
-            totalLinesCleared = 0;
+            totalLinesCleared = gameToCopy.totalLinesCleared;
 
-            isTicking = false;
-            gameTick = tickInterval;
-            firstTick = true;
+            isTicking = gameToCopy.isTicking;
+            gameTick = 1;
+            firstTick = gameToCopy.firstTick;
 
-            this.isActive = isActive;
-            this.StartXPosition = startXPosition;
-            this.StartYPosition = 0;
-            this.CurrentPiece = AddNewPiece();
-            this.NextPiece = AddNewPiece();
-            this.Height = height;
-            this.Width = width;
+            this.isActive = false;
 
-            InitialiseDeadGrid();
+            this.StartXPosition = gameToCopy.StartXPosition;
+            this.StartYPosition = gameToCopy.StartYPosition;
+
+            this.CurrentPiece = new Piece(gameToCopy.piece.PieceType, gameToCopy.piece.PositionX, gameToCopy.piece.PositionY);
+
+            this.NextPiece = gameToCopy.NextPiece;
+            this.Height = gameToCopy.Height;
+            this.Width = gameToCopy.Width;
+
+            this.deadGrid = new ShapeEnum[this.Width, this.Height];
+
+            for (int x = 0; x < this.deadGrid.GetLength(0); x++)
+            {
+                for (int y = 0; y < this.deadGrid.GetLength(1); y++)
+                {
+                    this.deadGrid[x, y] = gameToCopy.deadGrid[x, y];
+                }
+            }
 
         }
 
@@ -169,7 +181,7 @@ namespace Tetris_Clone
 
         public void TriggerGameTick(bool goingDown = false)
         {
-            if (firstTick)
+            if (isActive && firstTick)
             {
                 readyForNextMove.Invoke(this, this);
                 firstTick = false;
@@ -189,26 +201,31 @@ namespace Tetris_Clone
                 piece.PositionY -= 1;
                 piece.Deactivate();
                 AddPieceToDeadGrid(piece);
-                ClearLinesFromDeadGrid();
-                piece = nextPiece;
-                nextPiece = AddNewPiece();
 
-                //NewPeiceAdded
                 if (isActive)
                 {
-                    readyForNextMove.Invoke(this, this);
-                }
+                    ClearLinesFromDeadGrid();
+                    piece = nextPiece;
+                    nextPiece = AddNewPiece();
 
-                if (CheckForDeactivations())
-                {
-                    softGameOver = true;
-                    if (isActive)
+                    //NewPeiceAdded
+                    readyForNextMove.Invoke(this, this);
+
+                    if (CheckForDeactivations())
                     {
                         isGameOver = true;
                         GameOver.Invoke(this, new EventArgs());
                     }
-                    
                 }
+                else
+                {
+                    if (CheckForDeactivations())
+                    {
+                        softGameOver = true;
+                    }
+                }
+
+               
             }
             isTicking = false;
         }
@@ -223,8 +240,7 @@ namespace Tetris_Clone
             {
                 for (int y = 0; y < piece.Shape.GetLength(1); y++)
                 {
-                    if (piece.Shape[x,y] != ShapeEnum.Empty &&
-                        deadGrid[piece.PositionX + x, piece.PositionY + y] != ShapeEnum.Empty)
+                    if (piece.Shape[x,y] != ShapeEnum.Empty && deadGrid[piece.PositionX + x, piece.PositionY + y] != ShapeEnum.Empty)
                     {
                         return true;
                     }
