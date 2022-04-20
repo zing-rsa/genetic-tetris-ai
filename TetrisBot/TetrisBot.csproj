@@ -51,7 +51,6 @@
     <Compile Include="Move.cs" />
     <Compile Include="PopulationManager.cs" />
     <Compile Include="Result.cs" />
-    <Compile Include="TetBrain.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

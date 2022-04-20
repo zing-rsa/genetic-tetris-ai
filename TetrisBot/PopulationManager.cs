@@ -37,7 +37,7 @@ namespace TetrisBot
             this.populationSize = popSize;
             this.mutationRate = mutationRate;
 
-            CreateIntialPopulation();
+            CreateInitialPopulation();
         }
 
         public PopulationManager(GameState gameState, int popSize = 50)
@@ -45,20 +45,16 @@ namespace TetrisBot
             this.moveLimit = 500;
             this.genomes = new List<Genome>();
 
-            //this.StateSynced = gameState;
-
-            //loadState(StateSynced);
-
             this.populationSize = popSize;
 
-            CreateIntialPopulation();
+            CreateInitialPopulation();
 
         }
 
         #endregion
 
         #region Init
-        private void CreateIntialPopulation()
+        private void CreateInitialPopulation()
         {
             Random rnd = new Random();
 
@@ -68,14 +64,6 @@ namespace TetrisBot
                 // Weights influence the importance a genome places on each property in the decision making proccess
                 Genome newG = new Genome()
                 {
-                    //id = i,
-                    //rowsCleared = rnd.Next(0, 1000) - 2,
-                    //weightedHeight = rnd.Next(0, 1000) - 2,
-                    //cumulativeHeight = rnd.Next(0, 1000) - 2,
-                    //relativeHeight = rnd.Next(0, 1000) - 2,
-                    //holes = rnd.Next(0, 1000) * 2,
-                    //roughness = rnd.Next(0, 1000) - 2,
-
                     id = i,
                     personality = new Personality
                     {
@@ -114,7 +102,6 @@ namespace TetrisBot
             currentGenome = genomes[currentGenomeIndex];
 
             currentGenome.movesTaken = 0;
-            //MakeNextMove();
         }
 
         public void evolve()
@@ -124,14 +111,6 @@ namespace TetrisBot
 
             List<Genome> nextGeneration = new List<Genome>();
             
-            //seed genomes
-            //this.genomes = new List<Genome>();
-
-            //for (int i = 0; i < 20; i++)
-            //{
-            //    genomes.Add(new Genome() { fitness = i });
-            //}
-
             var topTen = genomes.OrderBy((g) => g.fitness).Skip(genomes.Count-10).Take(10).ToList();
 
             foreach (Genome g in topTen)
@@ -161,62 +140,14 @@ namespace TetrisBot
             this.genomes = nextGeneration;
         }
 
-        public void assignFitness(int fitness)
-        {
-            this.currentGenome.fitness = fitness;
-        }
-
-        public Move getNextMove_Seed(Game ref_CurrentGame, Genome seedGenome)
-        {
-            currentGenome = seedGenome;
-            currentGenome.movesTaken++;
-
-            //if (currentGenome.movesTaken > moveLimit)
-            //{
-            //    currentGenome.fitness = ref_CurrentGame.TotalLinesCleared;
-            //    evaluateNextGenome();
-            //}
-            //else
-            //{
-            var possibleMoves = getAllPossibleMoves(ref_CurrentGame);
-
-            //GameState orgState = new GameState(currentGameRef);
-
-            return getHighestRatedMove(possibleMoves);
-
-            //if (inspectMoveSelection)
-            //{
-            //    moveAlgorithim = move.algorithim;
-            //}
-
-            //Would need to send details to the view with algorothim behavior
-            //}
-        }
-
         public Move getNextMove(Game ref_CurrentGame)
         {
             currentGenome.movesTaken++;
 
-            //if (currentGenome.movesTaken > moveLimit)
-            //{
-            //    currentGenome.fitness = ref_CurrentGame.TotalLinesCleared;
-            //    evaluateNextGenome();
-            //}
-            //else
-            //{
             var possibleMoves = getAllPossibleMoves(ref_CurrentGame);
-
-                //GameState orgState = new GameState(currentGameRef);
 
             return getHighestRatedMove(possibleMoves);
 
-                //if (inspectMoveSelection)
-                //{
-                //    moveAlgorithim = move.algorithim;
-                //}
-
-                //Would need to send details to the view with algorothim behavior
-            //}
         }
 
         public Move getHighestRatedMove(List<Move> possibleMoves)
@@ -232,8 +163,6 @@ namespace TetrisBot
         /// </returns>
         public List<Move> getAllPossibleMoves(Game currentGameRef)
         {
-            //this.isGameover = false;
-
             List<Move> possibleMoves = new List<Move>();
 
             for (int rotations = 0; rotations < 4; rotations++)
@@ -271,22 +200,12 @@ namespace TetrisBot
                     {
                         Result MoveDownResult = moveToBottom(clonedState);
 
-                        //GameStats gs = new GameStats
-                        //{
-                        //    rowsCleared = MoveDownResult.rowsCleared * currentGenome.personality.rowsClearedWeight,
-                        //    weightedHeight = getWeightedHeight(clonedState) * currentGenome.personality.weightedHeight,
-                        //    cumulativeHeight = getCumulativeHeight(clonedState) * currentGenome.personality.cumulativeHeight,
-                        //    relativeHeight = getRealtiveHeight(clonedState) * currentGenome.personality.relativeHeight,
-                        //    holes = getHoles(clonedState) * currentGenome.personality.holesWeight,
-                        //    roughness = getRoughness(clonedState) * currentGenome.personality.roughnessWeight
-                        //};
-
                         GameStats gs = new GameStats
                         {
                             rowsCleared = MoveDownResult.rowsCleared,
                             weightedHeight = getWeightedHeight(clonedState),
                             cumulativeHeight = getCumulativeHeight(clonedState),
-                            relativeHeight = getRealtiveHeight(clonedState),
+                            relativeHeight = getRelativeHeight(clonedState),
                             holes = getHoles(clonedState),
                             roughness = getRoughness(clonedState) 
                         };
@@ -300,11 +219,6 @@ namespace TetrisBot
                         rating += gs.holes * Convert.ToInt32(currentGenome.personality.holes.weight * currentGenome.personality.holes.bias);
                         rating += gs.roughness * Convert.ToInt32(currentGenome.personality.roughness.weight * currentGenome.personality.roughness.bias);
 
-                        //if (MoveDownResult.lose)
-                        //{
-                        //    rating = 0;
-                        //}
-
                         possibleMoves.Add(new Move()
                         {
                             rotation = rotations,
@@ -316,14 +230,12 @@ namespace TetrisBot
                 }
             }
 
-            //loadState(StateSynced);//////////////////////////////////////////////////////////
-
             return possibleMoves;
         }
 
         public Result moveToBottom(Game game)
         {
-            //problem is here
+            //problem is here?
             Result result = new Result { lose = false, rowsCleared = 0 };
 
             while (!game.CheckForDeactivations())
@@ -337,30 +249,8 @@ namespace TetrisBot
 
         }
 
-        /// <summary>
-        /// Creates a deep copy of a Game object
-        /// </summary>
-        //public Game loadState(GameState game)
-        //{
-        //    gameState = game.Clone(game);
-        //    gameState.isActive = false;
-        //}
-
-        //public void saveState(Game game)
-        //{
-        //    prevGameState = game.Clone(game);
-        //    prevGameState.isActive = false;
-        //}
-
-        //public Game cloneState(Game orgGame)
-        //{
-        //    Game newState = new Game();
-
-            
-        //}
-
         //Returns a list of all of the heights of each of the columns, which is inherently 
-        //sorted because of the way the algorithim reads the heights
+        //sorted because of the way the algorithm reads the heights
         public List<int> getAllHeights(Game State)
         {
 
@@ -419,7 +309,6 @@ namespace TetrisBot
             return heights;
         }
 
-
         //Get the height of the highest column in the matrix
         public int getWeightedHeight(Game State)
         {
@@ -438,7 +327,7 @@ namespace TetrisBot
             return 0;
         }
 
-        //get the summ of all the heights of the columns
+        //get the sum of all the heights of the columns
         public int getCumulativeHeight(Game State)
         {
             List<int> allHeights = getAllHeights(State);
@@ -447,7 +336,7 @@ namespace TetrisBot
         }
 
         //get the relative of the highest column vs the lowest(ie. highest - lowest)
-        public int getRealtiveHeight(Game State)
+        public int getRelativeHeight(Game State)
         {
             List<int> heights = getAllHeights(State);
 
@@ -507,7 +396,6 @@ namespace TetrisBot
 
             return roughness;
         }
-
 
         public int getFilledRatio(Game State)
         {

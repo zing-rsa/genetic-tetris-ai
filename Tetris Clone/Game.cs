@@ -95,7 +95,7 @@ namespace Tetris_Clone
             this.Height = height;
             this.Width = width;
 
-            InitialiseDeadGrid();
+            InitializeDeadGrid();
 
         }
 
@@ -136,11 +136,6 @@ namespace Tetris_Clone
 
         public void PlayerInput(PlayerInput input)
         {
-            //if (isTicking)
-            //{
-            //    return;
-            //}
-
             switch (input)
             {
                 case Tetris_Clone.PlayerInput.Down:
@@ -314,7 +309,7 @@ namespace Tetris_Clone
                 piece.PositionX -= piece.RightMostX - this.Width;
             }
         }
-        private void InitialiseDeadGrid()
+        private void InitializeDeadGrid()
         {
             //Building the grid out of a 2d array of ShapeEnums which can be active or inactive
             deadGrid = new ShapeEnum[this.Width, this.Height];

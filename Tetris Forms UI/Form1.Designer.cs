@@ -30,26 +30,16 @@
         {
             this.components = new System.ComponentModel.Container();
             this.gameTimer = new System.Windows.Forms.Timer(this.components);
-            //this.timLinesClearing = new System.Windows.Forms.Timer(this.components);
             this.SuspendLayout();
             // 
             // gameTimer
             // 
             this.gameTimer.Interval = 800;
             this.gameTimer.Tick += new System.EventHandler(this.timer_Tick);
-            // 
-            // timLinesClearing
-            // 
-            //this.timLinesClearing.Interval = 10;
-            //this.timLinesClearing.Tick += new System.EventHandler(this.timLinesClearing_Tick);
-            // 
-            // Form1
-            // 
             this.ClientSize = new System.Drawing.Size(1400, 700);
             this.Name = "MainView";
             this.Load += new System.EventHandler(this.Form_Load);
             this.KeyDown += new System.Windows.Forms.KeyEventHandler(this.Form_KeyDown);
-            //this.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.Form_KeyPress);
             this.ResumeLayout(false);
 
         }
@@ -57,7 +47,6 @@
         #endregion
         
         private System.Windows.Forms.Timer gameTimer;
-        //private System.Windows.Forms.Timer timLinesClearing;
     }
 }
 
